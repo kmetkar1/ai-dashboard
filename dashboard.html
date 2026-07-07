@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Implementation Dashboard - Enterprise Analytics</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 30px;
+        }
+
+        .stat-box {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .filters-section {
+            background: #f8f9fa;
+            padding: 25px 40px;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #495057;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-group select {
+            padding: 10px 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 180px;
+        }
+
+        .filter-group select:hover {
+            border-color: #667eea;
+        }
+
+        .filter-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .reset-btn {
+            padding: 10px 25px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+
+        .reset-btn:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .metric-card.green {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .metric-card.orange {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .metric-card.blue {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .metric-card.purple {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            color: #333;
+        }
+
+        .metric-title {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .metric-value {
+            font-size: 42px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .metric-subtitle {
+            font-size: 13px;
+            opacity: 0.8;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e9ecef;
+        }
+
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .table-container {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e9ecef;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 14px;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge.active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge.completed {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .badge.yes {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .badge.no {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 18px;
+            color: #6c757d;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filters-section {
+                flex-direction: column;
+            }
+
+            .filter-group select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="header">
+            <h1>🤖 AI Implementation Dashboard</h1>
+            <div class="header-stats">
+                <div class="stat-box">
+                    <span class="stat-value" id="totalProjects">0</span>
+                    <span class="stat-label">Total Projects</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-value" id="activeProjects">0</span>
+                    <span class="stat-label">Active</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-value" id="totalBudget">$0M</span>
+                    <span class="stat-label">Total Budget</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="filters-section">
+            <div class="filter-group">
+                <label>Region</label>
+                <select id="regionFilter">
+                    <option value="all">All Regions</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Market</label>
+                <select id="marketFilter">
+                    <option value="all">All Markets</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Industry</label>
+                <select id="industryFilter">
+                    <option value="all">All Industries</option>
+                </select>
+            </div>
+            <button class="reset-btn" onclick="resetFilters()">Reset Filters</button>
+        </div>
+
+        <div class="content">
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-title">Agentic AI</div>
+                    <div class="metric-value" id="agenticCount">0</div>
+                    <div class="metric-subtitle">Projects Implemented</div>
+                </div>
+                <div class="metric-card green">
+                    <div class="metric-title">AI Ops</div>
+                    <div class="metric-value" id="aiOpsCount">0</div>
+                    <div class="metric-subtitle">Projects Implemented</div>
+                </div>
+                <div class="metric-card orange">
+                    <div class="metric-title">Business Transformation</div>
+                    <div class="metric-value" id="bizTransCount">0</div>
+                    <div class="metric-subtitle">Projects Implemented</div>
+                </div>
+                <div class="metric-card blue">
+                    <div class="metric-title">ICA</div>
+                    <div class="metric-value" id="icaCount">0</div>
+                    <div class="metric-subtitle">Projects Implemented</div>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-title">AI Category Distribution</div>
+                    <canvas id="categoryChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">Industry-wise AI Implementation</div>
+                    <canvas id="industryChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">Regional Distribution</div>
+                    <canvas id="regionChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">Market Segment Analysis</div>
+                    <canvas id="marketChart"></canvas>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <div class="chart-title">Project Details</div>
+                <table id="projectsTable">
+                    <thead>
+                        <tr>
+                            <th>Project ID</th>
+                            <th>Project Name</th>
+                            <th>Region</th>
+                            <th>Industry</th>
+                            <th>AI Category</th>
+                            <th>Agentic AI</th>
+                            <th>AI Ops</th>
+                            <th>Biz Transform</th>
+                            <th>ICA</th>
+                            <th>Budget</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr><td colspan="11" class="loading">Loading data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allProjects = [];
+        let filteredProjects = [];
+        let charts = {};
+
+        // Load CSV data
+        async function loadData() {
+            try {
+                const response = await fetch('data/projects_data.csv');
+                const csvText = await response.text();
+                
+                Papa.parse(csvText, {
+                    header: true,
+                    complete: function(results) {
+                        allProjects = results.data.filter(row => row.Project_ID);
+                        filteredProjects = [...allProjects];
+                        initializeFilters();
+                        updateDashboard();
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('tableBody').innerHTML = 
+                    '<tr><td colspan="11" style="color: red;">Error loading data. Please ensure projects_data.csv is in the data folder.</td></tr>';
+            }
+        }
+
+        function initializeFilters() {
+            const regions = [...new Set(allProjects.map(p => p.Region))].sort();
+            const markets = [...new Set(allProjects.map(p => p.Market))].sort();
+            const industries = [...new Set(allProjects.map(p => p.Industry))].sort();
+
+            populateFilter('regionFilter', regions);
+            populateFilter('marketFilter', markets);
+            populateFilter('industryFilter', industries);
+
+            document.getElementById('regionFilter').addEventListener('change', applyFilters);
+            document.getElementById('marketFilter').addEventListener('change', applyFilters);
+            document.getElementById('industryFilter').addEventListener('change', applyFilters);
+        }
+
+        function populateFilter(filterId, options) {
+            const select = document.getElementById(filterId);
+            options.forEach(option => {
+                const opt = document.createElement('option');
+                opt.value = option;
+                opt.textContent = option;
+                select.appendChild(opt);
+            });
+        }
+
+        function applyFilters() {
+            const region = document.getElementById('regionFilter').value;
+            const market = document.getElementById('marketFilter').value;
+            const industry = document.getElementById('industryFilter').value;
+
+            filteredProjects = allProjects.filter(project => {
+                return (region === 'all' || project.Region === region) &&
+                       (market === 'all' || project.Market === market) &&
+                       (industry === 'all' || project.Industry === industry);
+            });
+
+            updateDashboard();
+        }
+
+        function resetFilters() {
+            document.getElementById('regionFilter').value = 'all';
+            document.getElementById('marketFilter').value = 'all';
+            document.getElementById('industryFilter').value = 'all';
+            filteredProjects = [...allProjects];
+            updateDashboard();
+        }
+
+        function updateDashboard() {
+            updateMetrics();
+            updateCharts();
+            updateTable();
+        }
+
+        function updateMetrics() {
+            const total = filteredProjects.length;
+            const active = filteredProjects.filter(p => p.Status === 'Active').length;
+            const totalBudget = filteredProjects.reduce((sum, p) => sum + parseFloat(p.Budget || 0), 0);
+            
+            const agenticCount = filteredProjects.filter(p => p.Agentic_AI === 'Yes').length;
+            const aiOpsCount = filteredProjects.filter(p => p.AI_Ops === 'Yes').length;
+            const bizTransCount = filteredProjects.filter(p => p.Business_Transformation === 'Yes').length;
+            const icaCount = filteredProjects.filter(p => p.ICA === 'Yes').length;
+
+            document.getElementById('totalProjects').textContent = total;
+            document.getElementById('activeProjects').textContent = active;
+            document.getElementById('totalBudget').textContent = '$' + (totalBudget / 1000000).toFixed(1) + 'M';
+            
+            document.getElementById('agenticCount').textContent = agenticCount;
+            document.getElementById('aiOpsCount').textContent = aiOpsCount;
+            document.getElementById('bizTransCount').textContent = bizTransCount;
+            document.getElementById('icaCount').textContent = icaCount;
+        }
+
+        function updateCharts() {
+            // Category Distribution
+            const categoryData = {
+                'Agentic AI': filteredProjects.filter(p => p.AI_Category === 'Agentic AI').length,
+                'AI Ops': filteredProjects.filter(p => p.AI_Category === 'AI Ops').length,
+                'Business Transformation': filteredProjects.filter(p => p.AI_Category === 'Business Transformation').length,
+                'ICA': filteredProjects.filter(p => p.AI_Category === 'ICA').length
+            };
+
+            createOrUpdateChart('categoryChart', 'doughnut', 
+                Object.keys(categoryData), 
+                Object.values(categoryData),
+                ['#667eea', '#11998e', '#f5576c', '#4facfe']
+            );
+
+            // Industry Distribution
+            const industryData = {};
+            filteredProjects.forEach(p => {
+                industryData[p.Industry] = (industryData[p.Industry] || 0) + 1;
+            });
+
+            createOrUpdateChart('industryChart', 'bar',
+                Object.keys(industryData),
+                Object.values(industryData),
+                '#764ba2'
+            );
+
+            // Regional Distribution
+            const regionData = {};
+            filteredProjects.forEach(p => {
+                regionData[p.Region] = (regionData[p.Region] || 0) + 1;
+            });
+
+            createOrUpdateChart('regionChart', 'pie',
+                Object.keys(regionData),
+                Object.values(regionData),
+                ['#667eea', '#11998e', '#f5576c', '#4facfe', '#764ba2']
+            );
+
+            // Market Distribution
+            const marketData = {};
+            filteredProjects.forEach(p => {
+                marketData[p.Market] = (marketData[p.Market] || 0) + 1;
+            });
+
+            createOrUpdateChart('marketChart', 'bar',
+                Object.keys(marketData),
+                Object.values(marketData),
+                '#38ef7d'
+            );
+        }
+
+        function createOrUpdateChart(canvasId, type, labels, data, colors) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+            }
+
+            charts[canvasId] = new Chart(ctx, {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: Array.isArray(colors) ? colors : colors,
+                        borderWidth: 2,
+                        borderColor: 'white'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: type === 'bar' ? 'top' : 'right',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    },
+                    scales: type === 'bar' ? {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    } : {}
+                }
+            });
+        }
+
+        function updateTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            if (filteredProjects.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: #6c757d;">No projects match the selected filters</td></tr>';
+                return;
+            }
+
+            filteredProjects.forEach(project => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${project.Project_ID}</strong></td>
+                    <td>${project.Project_Name}</td>
+                    <td>${project.Region}</td>
+                    <td>${project.Industry}</td>
+                    <td>${project.AI_Category}</td>
+                    <td><span class="badge ${project.Agentic_AI === 'Yes' ? 'yes' : 'no'}">${project.Agentic_AI}</span></td>
+                    <td><span class="badge ${project.AI_Ops === 'Yes' ? 'yes' : 'no'}">${project.AI_Ops}</span></td>
+                    <td><span class="badge ${project.Business_Transformation === 'Yes' ? 'yes' : 'no'}">${project.Business_Transformation}</span></td>
+                    <td><span class="badge ${project.ICA === 'Yes' ? 'yes' : 'no'}">${project.ICA}</span></td>
+                    <td>$${parseFloat(project.Budget).toLocaleString()}</td>
+                    <td><span class="badge ${project.Status === 'Active' ? 'active' : 'completed'}">${project.Status}</span></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Load data on page load
+        loadData();
+    </script>
+</body>
+</html>
